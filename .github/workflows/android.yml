@@ -31,11 +31,18 @@ jobs:
           haxe -cp commandline -D analyzer-optimize --run Main setup -s
           haxelib run lime rebuild hxcpp
 
-      - name: Force git versions of lime and openfl
+      - name: Debug libraries
         run: |
-          haxelib set lime git
-          haxelib set openfl git
+          haxelib set lime git || true
+          haxelib set openfl git || true
           haxelib list
+          haxelib path lime || true
+          echo "=== cari AudioDecoder di lime ==="
+          grep -rl "AudioDecoder" .haxelib/lime/ --include=*.hx | head -5 || true
+          echo "=== isi macros flixel-addons ==="
+          ls .haxelib/flixel-addons/git/flixel/addons/system/macros/ || true
+          echo "=== versi lime dan openfl ==="
+          ls .haxelib/lime .haxelib/openfl || true
 
       - name: Configure Android
         run: |
