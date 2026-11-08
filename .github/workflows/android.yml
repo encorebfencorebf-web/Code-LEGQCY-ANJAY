@@ -31,48 +31,33 @@ jobs:
           haxe -cp commandline -D analyzer-optimize --run Main setup -s
           haxelib run lime rebuild hxcpp
 
-      - name: Pin flixel to match flixel-addons
+      - name: Pin flixel to the old branch
         run: |
           ROOT=$(pwd)
-          echo "=== info flixel-addons ==="
-          cd "$ROOT/.haxelib/flixel-addons/git"
-          git branch -a | head -20 || true
-          git log -3 --format="%h %ad %an %s" --date=short || true
-          grep -n '"version"' haxelib.json || true
-
-          echo "=== info flixel (sebelum pin) ==="
           cd "$ROOT/.haxelib/flixel/git"
-          git fetch --all --tags || true
-          git branch -a | head -20 || true
-          echo "--- tag terbaru ---"
-          git tag | tail -15 || true
-          echo "--- 15 commit terakhir yang menyentuh FlxDefines.hx ---"
-          git log -15 --format="%h %ad %an %s" --date=short -- flixel/system/macros/FlxDefines.hx || true
+          git fetch --all || true
 
-          A=$(git log --format=%H -S"FlxAddonDefines" -- flixel/system/macros/FlxDefines.hx | tail -1)
-          B=$(git log --format=%H -S"Unsupported Flixel Addons version" -- flixel/system/macros/FlxDefines.hx | tail -1)
-          echo "commit awal FlxAddonDefines : $A"
-          echo "commit awal cek versi addons: $B"
-
-          TARGET=""
-          for c in $A $B; do
-            [ -z "$c" ] && continue
-            if [ -z "$TARGET" ] || [ "$(git log -1 --format=%ct $c)" -lt "$(git log -1 --format=%ct $TARGET)" ]; then
-              TARGET=$c
-            fi
+          echo "=== tanggal commit terakhir tiap branch cne-flixel ==="
+          for b in old cne dev; do
+            git log -1 --format="$b: %h %ad %s" --date=short origin/$b || true
           done
 
-          if [ -n "$TARGET" ]; then
-            echo "Pin ke commit sebelum: $TARGET"
-            git checkout -f "${TARGET}^"
+          if git rev-parse --verify origin/old >/dev/null 2>&1; then
+            echo "Pakai branch old"
+            git checkout -f origin/old
           else
-            echo "Tidak ketemu, pakai cara tanggal"
-            git checkout -f "$(git rev-list -n 1 --before=2025-09-16 HEAD)"
+            echo "Branch old tidak ada, pakai commit sebelum audio rework"
+            git checkout -f "$(git rev-list -n 1 --before=2026-02-26 origin/dev)"
           fi
 
           echo "=== flixel sekarang di commit ==="
           git log -1 --format="%H %ad %an %s" --date=short
-          echo "=== baris terkait addons di FlxDefines.hx ==="
+
+          echo "=== AudioDecoder di flixel (harusnya kosong) ==="
+          grep -rl "AudioDecoder" . --include=*.hx | head -5 || true
+          echo "=== FlxAddonDefines di flixel ==="
+          grep -rl "FlxAddonDefines" . --include=*.hx | head -5 || true
+          echo "=== cek versi addons di FlxDefines.hx ==="
           grep -n "Addons" flixel/system/macros/FlxDefines.hx | head -10 || true
 
           cd "$ROOT"
