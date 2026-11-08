@@ -31,6 +31,12 @@ jobs:
           haxe -cp commandline -D analyzer-optimize --run Main setup -s
           haxelib run lime rebuild hxcpp
 
+      - name: Force git versions of lime and openfl
+        run: |
+          haxelib set lime git
+          haxelib set openfl git
+          haxelib list
+
       - name: Configure Android
         run: |
           haxelib run lime setup -alias -y
