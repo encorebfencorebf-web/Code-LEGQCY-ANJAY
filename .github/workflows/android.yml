@@ -33,7 +33,7 @@ jobs:
 
       - name: Roll back flixel to match older lime and addons
         env:
-          FLIXEL_BEFORE: "2025-11-03"
+          FLIXEL_BEFORE: "2025-09-16"
         run: |
           cd .haxelib/flixel/git
           git fetch --unshallow || true
@@ -52,6 +52,11 @@ jobs:
           grep -rl "AudioDecoder" .haxelib/flixel/git --include=*.hx | head -5 || true
           echo "=== FlxAddonDefines di flixel (harusnya kosong) ==="
           grep -rl "FlxAddonDefines" .haxelib/flixel/git --include=*.hx | head -5 || true
+          echo "=== jumlah #if dan #end di FlxDefines.hx ==="
+          grep -cE '^\s*#if' .haxelib/flixel/git/flixel/system/macros/FlxDefines.hx || true
+          grep -cE '^\s*#end' .haxelib/flixel/git/flixel/system/macros/FlxDefines.hx || true
+          echo "=== FlxDefines.hx baris 335-360 ==="
+          sed -n '335,360p' .haxelib/flixel/git/flixel/system/macros/FlxDefines.hx || true
 
       - name: Configure Android
         run: |
