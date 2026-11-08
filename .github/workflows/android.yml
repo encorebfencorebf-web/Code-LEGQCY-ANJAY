@@ -36,13 +36,21 @@ jobs:
           haxelib set lime git || true
           haxelib set openfl git || true
           haxelib list
-          haxelib path lime || true
           echo "=== cari AudioDecoder di lime ==="
           grep -rl "AudioDecoder" .haxelib/lime/ --include=*.hx | head -5 || true
-          echo "=== isi macros flixel-addons ==="
-          ls .haxelib/flixel-addons/git/flixel/addons/system/macros/ || true
-          echo "=== versi lime dan openfl ==="
-          ls .haxelib/lime .haxelib/openfl || true
+          echo "=== cari AudioDecoder di flixel dan openfl ==="
+          grep -rl "AudioDecoder" .haxelib/flixel .haxelib/openfl --include=*.hx | head -5 || true
+          echo "=== cari FlxAddonDefines ==="
+          find .haxelib/flixel-addons -name "FlxAddonDefines*" | head -5 || true
+          echo "=== isi folder flixel-addons ==="
+          ls .haxelib/flixel-addons/git/flixel/addons/ || true
+          echo "=== versi git lime, openfl, flixel, flixel-addons ==="
+          for lib in lime openfl flixel flixel-addons; do
+            echo "--- $lib ---"
+            git -C .haxelib/$lib/git log -1 --format="%H %ad %s" || true
+          done
+          echo "=== cari file library yang memakai lime-h ==="
+          grep -rn "lime-h" --include=*.xml --include=*.hx --include=*.json --include=*.yml . 2>/dev/null | grep -v ".haxelib" | head -10 || true
 
       - name: Configure Android
         run: |
