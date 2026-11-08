@@ -70,6 +70,16 @@ jobs:
             echo "$lib: $(git -C "$d" log -1 --format='%h %ad %s' --date=short 2>/dev/null)"
           done
 
+          echo "=== branch dan commit hscript-improved ==="
+          git -C .haxelib/hscript-improved/git fetch --all || true
+          git -C .haxelib/hscript-improved/git branch -a | head -15 || true
+          for b in custom-classes master main dev; do
+            git -C .haxelib/hscript-improved/git log -1 --format="$b: %h %ad %s" --date=short origin/$b 2>/dev/null || true
+          done
+
+          echo "=== tanggal commit repo engine ==="
+          git log -1 --format="%h %ad %s" --date=short
+
       - name: Configure Android
         run: |
           haxelib run lime setup -alias -y
