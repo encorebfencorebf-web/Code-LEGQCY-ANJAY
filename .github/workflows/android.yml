@@ -31,32 +31,55 @@ jobs:
           haxe -cp commandline -D analyzer-optimize --run Main setup -s
           haxelib run lime rebuild hxcpp
 
-      - name: Roll back flixel to match older lime and addons
-        env:
-          FLIXEL_BEFORE: "2025-09-16"
+      - name: Pin flixel to match flixel-addons
         run: |
-          cd .haxelib/flixel/git
-          git fetch --unshallow || true
-          git fetch --all || true
-          TARGET=$(git rev-list -n 1 --before="$FLIXEL_BEFORE" HEAD)
-          echo "Target commit: $TARGET"
-          git checkout -f "$TARGET"
+          ROOT=$(pwd)
+          echo "=== info flixel-addons ==="
+          cd "$ROOT/.haxelib/flixel-addons/git"
+          git branch -a | head -20 || true
+          git log -3 --format="%h %ad %an %s" --date=short || true
+          grep -n '"version"' haxelib.json || true
+
+          echo "=== info flixel (sebelum pin) ==="
+          cd "$ROOT/.haxelib/flixel/git"
+          git fetch --all --tags || true
+          git branch -a | head -20 || true
+          echo "--- tag terbaru ---"
+          git tag | tail -15 || true
+          echo "--- 15 commit terakhir yang menyentuh FlxDefines.hx ---"
+          git log -15 --format="%h %ad %an %s" --date=short -- flixel/system/macros/FlxDefines.hx || true
+
+          A=$(git log --format=%H -S"FlxAddonDefines" -- flixel/system/macros/FlxDefines.hx | tail -1)
+          B=$(git log --format=%H -S"Unsupported Flixel Addons version" -- flixel/system/macros/FlxDefines.hx | tail -1)
+          echo "commit awal FlxAddonDefines : $A"
+          echo "commit awal cek versi addons: $B"
+
+          TARGET=""
+          for c in $A $B; do
+            [ -z "$c" ] && continue
+            if [ -z "$TARGET" ] || [ "$(git log -1 --format=%ct $c)" -lt "$(git log -1 --format=%ct $TARGET)" ]; then
+              TARGET=$c
+            fi
+          done
+
+          if [ -n "$TARGET" ]; then
+            echo "Pin ke commit sebelum: $TARGET"
+            git checkout -f "${TARGET}^"
+          else
+            echo "Tidak ketemu, pakai cara tanggal"
+            git checkout -f "$(git rev-list -n 1 --before=2025-09-16 HEAD)"
+          fi
+
           echo "=== flixel sekarang di commit ==="
-          git log -1 --format="%H %ad %s"
-          cd ../../..
+          git log -1 --format="%H %ad %an %s" --date=short
+          echo "=== baris terkait addons di FlxDefines.hx ==="
+          grep -n "Addons" flixel/system/macros/FlxDefines.hx | head -10 || true
+
+          cd "$ROOT"
           haxelib set flixel git
           haxelib set lime git || true
           haxelib set openfl git || true
           haxelib list
-          echo "=== AudioDecoder di flixel (harusnya kosong) ==="
-          grep -rl "AudioDecoder" .haxelib/flixel/git --include=*.hx | head -5 || true
-          echo "=== FlxAddonDefines di flixel (harusnya kosong) ==="
-          grep -rl "FlxAddonDefines" .haxelib/flixel/git --include=*.hx | head -5 || true
-          echo "=== jumlah #if dan #end di FlxDefines.hx ==="
-          grep -cE '^\s*#if' .haxelib/flixel/git/flixel/system/macros/FlxDefines.hx || true
-          grep -cE '^\s*#end' .haxelib/flixel/git/flixel/system/macros/FlxDefines.hx || true
-          echo "=== FlxDefines.hx baris 335-360 ==="
-          sed -n '335,360p' .haxelib/flixel/git/flixel/system/macros/FlxDefines.hx || true
 
       - name: Configure Android
         run: |
