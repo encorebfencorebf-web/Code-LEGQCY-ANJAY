@@ -1,0 +1,26 @@
+name: Compare Backup
+on: workflow_dispatch
+jobs:
+  compare:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repo ini
+        uses: actions/checkout@v4
+      - name: Clone repo yang dulu sukses
+        run: |
+          git clone -q https://github.com/FunkinPortingMobile/Codename-Engine-Mobile-Backup backup
+          cd backup
+          git checkout -q 39a9380 2>/dev/null && echo "pakai commit 39a9380" || echo "39a9380 tidak ada, pakai main"
+          git log -1 --format='%h %ad %s' --date=short
+          echo "=== workflow backup ==="
+          ls .github/workflows
+          echo "=== android.yml backup: baris penting ==="
+          grep -nE "haxe-version|ndk-version|runs-on|lime|haxelib|sed |checkout|ref" .github/workflows/android.yml | cut -c1-150 | head -30 || true
+      - name: Beda library dengan repo ini
+        run: |
+          for f in libs.xml libs-mobile.xml; do
+            echo "=== $f: backup(<) vs repo ini(>) ==="
+            diff backup/$f $f && echo "(sama)" || true
+          done
+          echo "=== cara commandline memilih file libs ==="
+          grep -rn "libs" commandline/*.hx | cut -c1-150 | head -8 || true
