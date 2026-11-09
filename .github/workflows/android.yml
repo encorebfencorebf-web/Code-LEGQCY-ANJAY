@@ -61,51 +61,40 @@ jobs:
           git log -1 --format="hscript-improved: %h %ad %s" --date=short
           cd "$ROOT"
 
-          echo "##### FLIXEL-UI git (disiapkan sebagai opsi) #####"
-          haxelib git flixel-ui https://github.com/HaxeFlixel/flixel-ui || true
+          echo "##### PATCH FLIXEL-UI: INPUT_KEYS #####"
+          for F in $(find "$ROOT/.haxelib/flixel-ui" -name FlxUICursor.hx); do
+            echo "--- $F (sebelum patch)"
+            grep -n "INPUT_KEYS\|INPUT_GAMEPAD\|FLX_KEYBOARD" "$F" | head -10 || true
+            sed -i 's/InputMethod:Int = INPUT_KEYS/InputMethod:Int = 1/' "$F" || true
+            echo "--- (sesudah patch)"
+            grep -n "InputMethod:Int" "$F" | head -3 || true
+          done
 
-          # Daftar kandidat: "branch-flixel  mode-lime/openfl  flixel-ui"
+          # Daftar kandidat: "branch-flixel  mode-lime/openfl"
           # mode: fork = lime git + openfl git + patch Framerate
           #       mixo = lime 8.3.2 resmi + openfl git + patch Framerate
-          #       official = lime 8.3.2 + openfl 9.5.2 resmi
           CANDIDATES=(
-            "cne fork release"
-            "cne mixo release"
-            "cne official release"
-            "cne fork git"
-            "cne mixo git"
-            "cne official git"
-            "old fork release"
-            "old mixo release"
-            "old official release"
-            "old fork git"
-            "old mixo git"
-            "old official git"
+            "old fork"
+            "cne fork"
+            "old mixo"
+            "cne mixo"
           )
 
           apply() {
-            FL=$1; LO=$2; UI=$3
+            FL=$1; LO=$2
             git -C "$ROOT" checkout -- source 2>/dev/null || true
             git -C "$ROOT/.haxelib/flixel/git" checkout -f origin/$FL || true
             haxelib set flixel git
-            PATCH=0
             case $LO in
-              fork)     haxelib set lime git;   haxelib set openfl git;   PATCH=1 ;;
-              mixo)     haxelib set lime 8.3.2; haxelib set openfl git;   PATCH=1 ;;
-              official) haxelib set lime 8.3.2; haxelib set openfl 9.5.2; PATCH=0 ;;
+              fork) haxelib set lime git;   haxelib set openfl git ;;
+              mixo) haxelib set lime 8.3.2; haxelib set openfl git ;;
             esac
-            if [ "$UI" = "git" ]; then
-              haxelib set flixel-ui git || true
-            else
-              haxelib set flixel-ui 2.6.1 || true
-            fi
-            if [ "$PATCH" = "1" ]; then
-              for F in source/funkin/backend/system/framerate/Framerate.hx source/funkin/backend/system/framerate/FramerateCategory.hx; do
-                if [ -f "$ROOT/$F" ]; then
-                  sed -i -E 's/(__enterFrame[[:space:]]*\([[:space:]]*[A-Za-z_]+[[:space:]]*:[[:space:]]*)Float/\1Int/' "$ROOT/$F" || true
-                fi
-              done
-            fi
+            haxelib set flixel-ui 2.6.1 || true
+            for F in source/funkin/backend/system/framerate/Framerate.hx source/funkin/backend/system/framerate/FramerateCategory.hx; do
+              if [ -f "$ROOT/$F" ]; then
+                sed -i -E 's/(__enterFrame[[:space:]]*\([[:space:]]*[A-Za-z_]+[[:space:]]*:[[:space:]]*)Float/\1Int/' "$ROOT/$F" || true
+              fi
+            done
           }
 
           attempt() {
@@ -128,8 +117,8 @@ jobs:
           for C in "${CANDIDATES[@]}"; do
             set -- $C
             echo ""
-            echo "########## KANDIDAT: flixel=$1 mode=$2 flixel-ui=$3 ##########"
-            apply $1 $2 $3
+            echo "########## KANDIDAT: flixel=$1 mode=$2 ##########"
+            apply $1 $2
             haxelib list | grep -E "^(lime|openfl|flixel|flixel-ui|hscript-improved):" || true
             attempt
             if [ "$RC" = "0" ]; then
@@ -155,15 +144,6 @@ jobs:
             echo ""
             echo "=========== RINGKASAN SEMUA KANDIDAT ==========="
             cat "$SUMMARY"
-            echo "=========== BRANCH FLIXEL YANG PUNYA INPUT_KEYS ==========="
-            for b in old cne dev; do
-              echo "--- origin/$b"
-              git -C "$ROOT/.haxelib/flixel/git" grep -n "INPUT_KEYS" origin/$b -- '*.hx' | head -5 || true
-            done
-            echo "=========== FlxUICursor.hx baris 236-246 ==========="
-            for F in $(find "$ROOT/.haxelib/flixel-ui" -name FlxUICursor.hx | head -1); do
-              sed -n '236,246p' "$F" || true
-            done
             exit 1
           fi
 
