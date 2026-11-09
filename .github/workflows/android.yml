@@ -89,6 +89,12 @@ jobs:
           echo "##### BUILD (${{ matrix.hs }} / ${{ matrix.lo }}) #####"
           haxelib run lime build android -final 2>&1 | tee build.log
 
+      - name: Ringkasan error
+        if: failure()
+        run: |
+          echo "=== ringkasan error unik ==="
+          grep -E "Error|error|Unknown|not found|Expected|Loop" build.log | sort -u | head -40 || true
+
       - name: Clear Previous Cache
         uses: actions/github-script@main
         with:
