@@ -1,0 +1,31 @@
+name: Inspect Repo
+on: workflow_dispatch
+jobs:
+  inspect:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+      - name: Ringkasan repo
+        run: |
+          echo "=== commit terakhir ==="
+          git log -8 --format='%h %ad %s' --date=short
+          echo "=== isi root ==="
+          ls
+          echo "=== file library ==="
+          ls building 2>/dev/null || true
+          ls *.xml 2>/dev/null || true
+          echo "=== project.xml: baris android/mobile/haxedef ==="
+          grep -nEi "android|mobile|haxedef|haxelib" project.xml | cut -c1-140 | head -40 || true
+      - name: Konflik merge
+        run: |
+          OUT=$(grep -rnE '^(<<<<<<< |=======$|>>>>>>> )' . --exclude-dir=.git --include=*.hx --include=*.xml --include=*.json --include=*.hxml --include=*.yml || true)
+          if [ -z "$OUT" ]; then echo "tidak ada konflik"; else echo "$OUT" | head -40; fi
+      - name: Konteks konflik Main.hx
+        run: |
+          F=source/funkin/backend/system/Main.hx
+          if [ -f "$F" ]; then
+            L=$(grep -n '^<<<<<<< ' "$F" | head -1 | cut -d: -f1)
+            if [ -n "$L" ]; then sed -n "$((L-3)),$((L+40))p" "$F"; fi
+          fi
